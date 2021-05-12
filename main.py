@@ -100,21 +100,21 @@ for type_id, type in enumerate(TEST_TYPES):
                         "is": CERTIFICATE_ISSUER,
                         "ci": get_random_uvci()
                     }
-                    for _ in range(random.randint(1,3))
+                    for _ in range(random.randint(1, 3))
                 ]
             if "vaccination" in type:
                 vaccinations = [
                     {
-                      "tg": get_a_random("disease-agent-targeted"),
-                      "vp": get_a_random("sct-vaccines-covid-19"),
-                      "mp": get_a_random("vaccines-covid-19-names"),
-                      "ma": get_a_random("vaccines-covid-19-auth-holders"),
-                      "dn": random.randint(0, 9),
-                      "sd": random.randint(1, 9),
-                      "dt": "2021-02-18",  # Date of Vaccination
-                      "co": get_a_random("countries"),  # Country of Vaccination
-                      "is": CERTIFICATE_ISSUER,
-                      "ci": get_random_uvci()
+                        "tg": get_a_random("disease-agent-targeted"),
+                        "vp": get_a_random("sct-vaccines-covid-19"),
+                        "mp": get_a_random("vaccines-covid-19-names"),
+                        "ma": get_a_random("vaccines-covid-19-auth-holders"),
+                        "dn": random.randint(0, 9),
+                        "sd": random.randint(1, 9),
+                        "dt": "2021-02-18",  # Date of Vaccination
+                        "co": get_a_random("countries"),  # Country of Vaccination
+                        "is": CERTIFICATE_ISSUER,
+                        "ci": get_random_uvci()
                     }
                     for _ in range(random.randint(0, 5))
                 ]
@@ -152,35 +152,35 @@ for type_id, type in enumerate(TEST_TYPES):
                 test_json.update({"r": recoveries})
 
             data.append({
-                    "JSON": test_json,
-                    "CBOR": "",
-                    "COSE": "",
-                    "COMPRESSED": "",
-                    "BASE45": "",
-                    "PREFIX": "",
-                    "2DCODE": "",
-                    "TESTCTX": {
-                        "VERSION": 1,
-                        "SCHEMA": "1.0.0",
-                        "CERTIFICATE": "M",
-                        "VALIDATIONCLOCK": datetime.datetime.now().isoformat(),
-                        "DESCRIPTION": f"NL {type}",
-                        "_use_wrong_key": "wrong_key" in type
-                    },
-                    "EXPECTEDRESULTS": {
-                        "EXPECTEDVALIDOBJECT": True,
-                        "EXPECTEDSCHEMAVALIDATION": is_ok,  # afhankelijk van de data
-                        "EXPECTEDDECODE": True,
-                        "EXPECTEDVERIFY": True,
-                        "EXPECTEDUNPREFIX": True,
-                        "EXPECTEDVALIDJSON": True,
-                        "EXPECTEDCOMPRESSION": True,
-                        "EXPECTEDB45DECODE": True,
-                        "EXPECTEDEXPIRATIONCHECK": True,
-                        "EXPECTEDPICTUREDECODE": True,
-                        "EXPECTEDKEYUSAGE": "wrong_key" not in type
-                    }
-                })
+                "JSON": test_json,
+                "CBOR": "",
+                "COSE": "",
+                "COMPRESSED": "",
+                "BASE45": "",
+                "PREFIX": "",
+                "2DCODE": "",
+                "TESTCTX": {
+                    "VERSION": 1,
+                    "SCHEMA": "1.0.0",
+                    "CERTIFICATE": "M",
+                    "VALIDATIONCLOCK": datetime.datetime.now().isoformat(),
+                    "DESCRIPTION": f"NL {type}",
+                    "_use_wrong_key": "wrong_key" in type
+                },
+                "EXPECTEDRESULTS": {
+                    "EXPECTEDVALIDOBJECT": True,
+                    "EXPECTEDSCHEMAVALIDATION": is_ok,  # afhankelijk van de data
+                    "EXPECTEDDECODE": True,
+                    "EXPECTEDVERIFY": True,
+                    "EXPECTEDUNPREFIX": True,
+                    "EXPECTEDVALIDJSON": True,
+                    "EXPECTEDCOMPRESSION": True,
+                    "EXPECTEDB45DECODE": True,
+                    "EXPECTEDEXPIRATIONCHECK": True,
+                    "EXPECTEDPICTUREDECODE": True,
+                    "EXPECTEDKEYUSAGE": "wrong_key" not in type
+                }
+            })
 
 print(json.dumps(data, indent=2))
 print(len(data))
