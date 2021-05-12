@@ -28,13 +28,15 @@ VALUE_SETS = {
     "countries": ["NL", "SD", "GR", "AT"]
 }
 
+DATA_DIR = "./data"
+TEST_DATA_SETS = {}
+
 for f in os.listdir(os.path.join(SCHEMA_DIR, VALUE_SET_DIR)):
     with open(os.path.join(SCHEMA_DIR, VALUE_SET_DIR, f), "r") as json_file:
         valueset = json.load(json_file)
         VALUE_SETS.update({
             valueset['valueSetId']: valueset['valueSetValues']
         })
-print(json.dumps(VALUE_SETS, indent=4))
 
 
 # READ TEST DATA SETS
@@ -45,14 +47,11 @@ def parse_test_record(line):
     return dict(result=result, values=values)
 
 
-DATA_DIR = "./data"
-TEST_DATA_SETS = {}
 for test_file in ['birthdates', 'names', 'vaccins']:
     with open(os.path.join(DATA_DIR, test_file), 'r') as f:
         TEST_DATA_SETS.update({
             test_file: [parse_test_record(l) for l in f.readlines()]
         })
-print(json.dumps(TEST_DATA_SETS, indent=4))
 
 
 def get_a_random(value_set_id):
@@ -73,12 +72,13 @@ def normalize_name(n):
     return encoded
 
 
-data = []
+testcases = []
 for type_id, type in enumerate(TEST_TYPES):
     for n in TEST_DATA_SETS["names"]:
         for d in TEST_DATA_SETS["birthdates"]:
             is_ok = n['result'] == 'T' and d['result'] == 'T'
-            print(is_ok)
+
+            # Don't include too many invalid cases
             if not is_ok and random.random() > FRACTION_INVALID_CASES:
                 continue
             if is_ok and random.random() > FRACTION_VALID_CASES:
@@ -102,6 +102,7 @@ for type_id, type in enumerate(TEST_TYPES):
                     }
                     for _ in range(random.randint(1, 3))
                 ]
+
             if "vaccination" in type:
                 vaccinations = [
                     {
@@ -118,6 +119,7 @@ for type_id, type in enumerate(TEST_TYPES):
                     }
                     for _ in range(random.randint(0, 5))
                 ]
+
             if "recovery" in type:
                 recoveries = [
                     {
@@ -151,7 +153,7 @@ for type_id, type in enumerate(TEST_TYPES):
             if recoveries:
                 test_json.update({"r": recoveries})
 
-            data.append({
+            testcases.append({
                 "JSON": test_json,
                 "CBOR": "",
                 "COSE": "",
@@ -181,6 +183,3 @@ for type_id, type in enumerate(TEST_TYPES):
                     "EXPECTEDKEYUSAGE": "wrong_key" not in type
                 }
             })
-
-print(json.dumps(data, indent=2))
-print(len(data))
