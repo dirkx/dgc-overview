@@ -1,3 +1,4 @@
+#!env python3.8
 import json
 import os
 import random
@@ -5,17 +6,33 @@ import uuid
 import unidecode
 import re
 import datetime
+import cbor2
+import zlib
+
+from base45 import b45encode
+from cose.curves import P256
+from cose.algorithms import Es256
+from cose.headers import Algorithm, KID
+from cose.keys import CoseKey
+from cose.keys.keyparam import KpAlg, EC2KpD, EC2KpCurve
+from cose.keys.keyparam import KpKty
+from cose.keys.keytype import KtyEC2
+from cose.messages import Sign1Message
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 CERTIFICATE_ISSUER = "Ministry of Health Welfare and Sport"
 TEST_TYPES = [
     "test",
     "vaccination",
     "recovery",
-    "test+vaccination",
-    "test+recovery",
-    "recovery+vaccination",
-    "test+recovery+vaccination",
-    "test+wrong_key"]
+    #"test+vaccination",
+    #"test+recovery",
+    #"recovery+vaccination",
+    #"test+recovery+vaccination",
+    #"test+wrong_key",
+]
 
 FRACTION_INVALID_CASES = 0.5
 FRACTION_VALID_CASES = 1.0
@@ -71,7 +88,40 @@ def normalize_name(n):
     encoded = re.sub(r"[^A-Z<]+", "", encoded)
     return encoded
 
+# Load keys
+signing_keys = {}
+for key_type, key_filename in {"test": "test", "vaccination": "vaccinations", "recovery": "recovery"}.items():
+    filename_base = "./nl-dsc-keys/Health_DSC_valid_for_" + key_filename
 
+    # Get keyid out of public key
+    with open(filename_base + ".pem", "rb") as file:
+        pem = file.read()
+
+    cert = x509.load_pem_x509_certificate(pem)
+    fingerprint = cert.fingerprint(hashes.SHA256())
+    keyid = fingerprint[0:8]
+
+    # Get private key
+    with open(filename_base + ".key", "rb") as file:
+        pem = file.read()
+    keyfile = load_pem_private_key(pem, password=None)
+    privkey = keyfile.private_numbers().private_value.to_bytes(32, byteorder="big")
+
+    # Construct COSE key object
+    cose_key = {
+        KpKty: KtyEC2,
+        KpAlg: Es256,
+        EC2KpCurve: P256,
+        EC2KpD: privkey,
+    }
+
+    # Create lookup entry
+    signing_keys[key_type] = {
+        "keyid": keyid,
+        "cose_key": cose_key,
+    }
+
+# Construct and process test cases
 testcases = []
 for type_id, type in enumerate(TEST_TYPES):
     for n in TEST_DATA_SETS["names"]:
@@ -84,11 +134,14 @@ for type_id, type in enumerate(TEST_TYPES):
             if is_ok and random.random() > FRACTION_VALID_CASES:
                 continue
 
+            # Build JSON payload
+            signing_key = None
             tests = []
             vaccinations = []
             recoveries = []
 
             if "test" in type:
+                signing_key = signing_keys["test"]
                 tests = [
                     {
                         "tg": get_a_random("disease-agent-targeted"),
@@ -104,6 +157,7 @@ for type_id, type in enumerate(TEST_TYPES):
                 ]
 
             if "vaccination" in type:
+                signing_key = signing_keys["vaccination"]
                 vaccinations = [
                     {
                         "tg": get_a_random("disease-agent-targeted"),
@@ -121,6 +175,7 @@ for type_id, type in enumerate(TEST_TYPES):
                 ]
 
             if "recovery" in type:
+                signing_key = signing_keys["recovery"]
                 recoveries = [
                     {
                         "tg": get_a_random("disease-agent-targeted"),
@@ -141,25 +196,39 @@ for type_id, type in enumerate(TEST_TYPES):
                 "gnt": normalize_name(n['values'][0])
             }
 
-            test_json = {
+            json_payload = {
                 "ver": "1.0.0",
                 "nam": name,
                 "dob": d['values'][0]
             }
+
             if vaccinations:
-                test_json.update({"v": vaccinations})
+                json_payload.update({"v": vaccinations})
             if tests:
-                test_json.update({"t": tests})
+                json_payload.update({"t": tests})
             if recoveries:
-                test_json.update({"r": recoveries})
+                json_payload.update({"r": recoveries})
+
+            # Sign
+            cbor_message = cbor2.dumps(json_payload)
+
+            cose_message = Sign1Message(phdr={Algorithm: Es256, KID: signing_key["keyid"]}, payload=cbor_message)
+            cose_message.key = CoseKey.from_dict(signing_key["cose_key"])
+
+            signed_message = cose_message.encode()
+            compressed_message = zlib.compress(signed_message, 9)
+
+            base45_message = b45encode(compressed_message)
+            prefixed_message = "HC1:" + base45_message
 
             testcases.append({
-                "JSON": test_json,
-                "CBOR": "",
-                "COSE": "",
-                "COMPRESSED": "",
-                "BASE45": "",
-                "PREFIX": "",
+                "JSON": json_payload,
+                "CBOR": cbor_message.hex(),
+                "CBOR": cbor_message.hex(),
+                "COSE": signed_message.hex(),
+                "COMPRESSED": compressed_message.hex(),
+                "BASE45": base45_message,
+                "PREFIX": prefixed_message,
                 "2DCODE": "",
                 "TESTCTX": {
                     "VERSION": 1,
@@ -167,7 +236,6 @@ for type_id, type in enumerate(TEST_TYPES):
                     "CERTIFICATE": "M",
                     "VALIDATIONCLOCK": datetime.datetime.now().isoformat(),
                     "DESCRIPTION": f"NL {type}",
-                    "_use_wrong_key": "wrong_key" in type
                 },
                 "EXPECTEDRESULTS": {
                     "EXPECTEDVALIDOBJECT": True,
@@ -183,3 +251,5 @@ for type_id, type in enumerate(TEST_TYPES):
                     "EXPECTEDKEYUSAGE": "wrong_key" not in type
                 }
             })
+
+print(json.dumps(testcases, indent=2))
