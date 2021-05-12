@@ -6,7 +6,6 @@ import unidecode
 import re
 import datetime
 
-
 CERTIFICATE_ISSUER = "Ministry of Health Welfare and Sport"
 TEST_TYPES = [
     "test",
@@ -22,12 +21,13 @@ FRACTION_INVALID_CASES = 0.5
 FRACTION_VALID_CASES = 1.0
 
 # READ OFFICIAL VALUE SETS
-SCHEMA_DIR = "/home/willem/work-secure/VWS/code/ehn-dgc-schema"
+SCHEMA_DIR = "./ehn-dgc-schema"
 VALUE_SET_DIR = "valuesets"
 
 VALUE_SETS = {
     "countries": ["NL", "SD", "GR", "AT"]
 }
+
 for f in os.listdir(os.path.join(SCHEMA_DIR, VALUE_SET_DIR)):
     with open(os.path.join(SCHEMA_DIR, VALUE_SET_DIR, f), "r") as json_file:
         valueset = json.load(json_file)
@@ -45,7 +45,7 @@ def parse_test_record(line):
     return dict(result=result, values=values)
 
 
-DATA_DIR = "/home/willem/work-secure/VWS/code/generate-dgc-examples/data"
+DATA_DIR = "./data"
 TEST_DATA_SETS = {}
 for test_file in ['birthdates', 'names', 'vaccins']:
     with open(os.path.join(DATA_DIR, test_file), 'r') as f:

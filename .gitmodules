@@ -1,0 +1,3 @@
+[submodule "ehn-dgc-schema"]
+	path = ehn-dgc-schema
+	url = git@github.com:ehn-digital-green-development/ehn-dgc-schema.git
