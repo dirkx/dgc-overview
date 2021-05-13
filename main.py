@@ -185,7 +185,6 @@ for type_id, type in enumerate(TEST_TYPES):
                         "is": CERTIFICATE_ISSUER,
                         "ci": get_random_uvci()
                     }
-                    for _ in range(random.randint(1, 3))
                 ]
 
             if "recovery" in type:
@@ -200,7 +199,6 @@ for type_id, type in enumerate(TEST_TYPES):
                         "du": "2021-06-01",
                         "ci": get_random_uvci()
                     }
-                    for _ in range(random.randint(1, 2))
                 ]
 
             if "vaccination" in type:
@@ -218,7 +216,6 @@ for type_id, type in enumerate(TEST_TYPES):
                         "is": CERTIFICATE_ISSUER,
                         "ci": get_random_uvci()
                     }
-                    for _ in range(random.randint(0, 5))
                 ]
 
             name = {
