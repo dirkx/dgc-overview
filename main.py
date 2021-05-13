@@ -24,14 +24,14 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 CERTIFICATE_ISSUER = "Ministry of Health Welfare and Sport"
 TEST_TYPES = [
-    "test",
-    "vaccination",
-    "recovery",
-    #"test+vaccination",
-    #"test+recovery",
-    #"recovery+vaccination",
-    #"test+recovery+vaccination",
-    #"test+wrong_key",
+    ["test"],
+    ["vaccination"],
+    ["recovery"],
+    ["test", "vaccination"],
+    ["test", "recovery"],
+    ["recovery", "vaccination"],
+    ["test", "recovery", "vaccination"],
+    ["test", "wrong_key"],
 ]
 
 FRACTION_INVALID_CASES = 0.5
@@ -156,6 +156,21 @@ for type_id, type in enumerate(TEST_TYPES):
                     for _ in range(random.randint(1, 3))
                 ]
 
+            if "recovery" in type:
+                signing_key = signing_keys["recovery"]
+                recoveries = [
+                    {
+                        "tg": get_a_random("disease-agent-targeted"),
+                        "fr": "2021-03-25",
+                        "co": get_a_random("countries"),
+                        "is": CERTIFICATE_ISSUER,
+                        "df": "2021-04-12",
+                        "du": "2021-06-01",
+                        "ci": get_random_uvci()
+                    }
+                    for _ in range(random.randint(1, 2))
+                ]
+
             if "vaccination" in type:
                 signing_key = signing_keys["vaccination"]
                 vaccinations = [
@@ -172,21 +187,6 @@ for type_id, type in enumerate(TEST_TYPES):
                         "ci": get_random_uvci()
                     }
                     for _ in range(random.randint(0, 5))
-                ]
-
-            if "recovery" in type:
-                signing_key = signing_keys["recovery"]
-                recoveries = [
-                    {
-                        "tg": get_a_random("disease-agent-targeted"),
-                        "fr": "2021-03-25",
-                        "co": get_a_random("countries"),
-                        "is": CERTIFICATE_ISSUER,
-                        "df": "2021-04-12",
-                        "du": "2021-06-01",
-                        "ci": get_random_uvci()
-                    }
-                    for _ in range(random.randint(1, 2))
                 ]
 
             name = {
@@ -209,6 +209,11 @@ for type_id, type in enumerate(TEST_TYPES):
             if recoveries:
                 json_payload.update({"r": recoveries})
 
+            # Potentially use the wrong key
+            if "wrong_key" in type:
+                other_key_types = list(signing_keys.keys() - set(type))
+                signing_key = signing_keys[other_key_types[0]]
+
             # Sign
             cbor_message = cbor2.dumps(json_payload)
 
@@ -223,7 +228,6 @@ for type_id, type in enumerate(TEST_TYPES):
 
             testcases.append({
                 "JSON": json_payload,
-                "CBOR": cbor_message.hex(),
                 "CBOR": cbor_message.hex(),
                 "COSE": signed_message.hex(),
                 "COMPRESSED": compressed_message.hex(),
