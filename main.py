@@ -92,10 +92,10 @@ def normalize_name(n):
 # Load keys
 signing_keys = {}
 for key_type, key_filename in {"test": "test", "vaccination": "vaccinations", "recovery": "recovery"}.items():
-    filename_base = "./nl-dsc-keys/Health_DSC_valid_for_" + key_filename
+    filename_base = f"./nl-dsc-keys/Health_DSC_valid_for_{key_filename}"
 
     # Get public key with keyid
-    with open(filename_base + ".pem", "rb") as file:
+    with open(f"{filename_base}.pem", "rb") as file:
         pem = file.read()
 
     cert = x509.load_pem_x509_certificate(pem)
@@ -103,7 +103,7 @@ for key_type, key_filename in {"test": "test", "vaccination": "vaccinations", "r
     keyid = fingerprint[0:8]
 
     # Get private key
-    with open(filename_base + ".key", "rb") as file:
+    with open(f"{filename_base}.key", "rb") as file:
         pem = file.read()
     keyfile = load_pem_private_key(pem, password=None)
     privkey = keyfile.private_numbers().private_value.to_bytes(32, byteorder="big")
@@ -245,7 +245,7 @@ for type_id, type in enumerate(TEST_TYPES):
                     "SCHEMA": "1.0.0",
                     "CERTIFICATE": signing_key["certificate_base64"],
                     "VALIDATIONCLOCK": datetime.datetime.now().isoformat(),
-                    "DESCRIPTION": f"NL {type}",
+                    "DESCRIPTION": f"NL {'+'.join(type)}",
                 },
                 "EXPECTEDRESULTS": {
                     "EXPECTEDVALIDOBJECT": True,
