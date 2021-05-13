@@ -11,6 +11,7 @@ import zlib
 import base64
 import qrcode
 import io
+import sys
 
 from base45 import b45encode
 from cose.curves import P256
@@ -141,6 +142,12 @@ for key_type, key_filename in {"test": "test", "vaccination": "vaccinations", "r
         "cose_key": cose_key,
         "certificate_base64": cert_base64,
     }
+
+# Refuse to overwrite target directory
+target_root_dir = "./NL"
+if os.path.exists(target_root_dir):
+    print(f"Cowardly refusing to overwrite target directory {target_root_dir}")
+    sys.exit()
 
 # Construct and process test cases
 print("Generating testcases. This can take a while (especially generating the QRs)", end='')
@@ -281,4 +288,21 @@ for type_id, type in enumerate(TEST_TYPES):
                 }
             })
 
-print(json.dumps(testcases, indent=2))
+# Write files
+target_raw_dir = os.path.join(target_root_dir, "2DCode", "raw")
+target_png_dir = os.path.join(target_root_dir, "2DCode", "png")
+
+os.makedirs(target_raw_dir, exist_ok=True)
+os.mkdir(target_png_dir)
+
+print("\nWriting files...")
+for i, testcase in enumerate(testcases):
+    target_raw_filename = os.path.join(target_raw_dir, f"{i}.json")
+    with open(target_raw_filename, "w") as f:
+        content = json.dumps(testcase, indent=4)
+        f.write(content)
+
+    target_png_filename = os.path.join(target_png_dir, f"{i}.png")
+    with open(target_png_filename, "wb") as f:
+        content = base64.b64decode(testcase["2DCODE"])
+        f.write(content)
