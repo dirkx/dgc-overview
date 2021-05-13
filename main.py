@@ -8,6 +8,7 @@ import re
 import datetime
 import cbor2
 import zlib
+import base64
 
 from base45 import b45encode
 from cose.curves import P256
@@ -20,7 +21,7 @@ from cose.keys.keytype import KtyEC2
 from cose.messages import Sign1Message
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.hazmat.primitives.serialization import Encoding, load_pem_private_key
 
 CERTIFICATE_ISSUER = "Ministry of Health Welfare and Sport"
 TEST_TYPES = [
@@ -93,7 +94,7 @@ signing_keys = {}
 for key_type, key_filename in {"test": "test", "vaccination": "vaccinations", "recovery": "recovery"}.items():
     filename_base = "./nl-dsc-keys/Health_DSC_valid_for_" + key_filename
 
-    # Get keyid out of public key
+    # Get public key with keyid
     with open(filename_base + ".pem", "rb") as file:
         pem = file.read()
 
@@ -115,10 +116,15 @@ for key_type, key_filename in {"test": "test", "vaccination": "vaccinations", "r
         EC2KpD: privkey,
     }
 
+    # Encode the certificate as base64
+    cert_der = cert.public_bytes(Encoding.DER)
+    cert_base64 = base64.b64encode(cert_der).decode("utf-8")
+
     # Create lookup entry
     signing_keys[key_type] = {
         "keyid": keyid,
         "cose_key": cose_key,
+        "certificate_base64": cert_base64,
     }
 
 # Construct and process test cases
@@ -237,7 +243,7 @@ for type_id, type in enumerate(TEST_TYPES):
                 "TESTCTX": {
                     "VERSION": 1,
                     "SCHEMA": "1.0.0",
-                    "CERTIFICATE": "M",
+                    "CERTIFICATE": signing_key["certificate_base64"],
                     "VALIDATIONCLOCK": datetime.datetime.now().isoformat(),
                     "DESCRIPTION": f"NL {type}",
                 },
