@@ -244,7 +244,11 @@ for type_id, type in enumerate(TEST_TYPES):
                 signing_key = signing_keys[other_key_types[0]]
 
             # Sign
-            cbor_message = cbor2.dumps(json_payload)
+            cbor_message = cbor2.dumps({
+               -260: {
+                    1: json_payload,
+                },
+            })
 
             cose_message = Sign1Message(phdr={Algorithm: Es256, KID: signing_key["keyid"]}, payload=cbor_message)
             cose_message.key = CoseKey.from_dict(signing_key["cose_key"])
