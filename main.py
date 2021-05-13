@@ -9,6 +9,8 @@ import datetime
 import cbor2
 import zlib
 import base64
+import qrcode
+import io
 
 from base45 import b45encode
 from cose.curves import P256
@@ -89,6 +91,19 @@ def normalize_name(n):
     encoded = re.sub(r"[^A-Z<]+", "", encoded)
     return encoded
 
+def qr_png_base64(str):
+    qr = qrcode.QRCode(
+        error_correction=qrcode.constants.ERROR_CORRECT_Q,
+        box_size=3,
+        border=2,
+    )
+
+    qr.add_data(str)
+
+    qr_image_buffer = io.BytesIO()
+    qr.make_image().save(qr_image_buffer, format="PNG")
+    return base64.b64encode(qr_image_buffer.getvalue()).decode("utf-8")
+
 # Load keys
 signing_keys = {}
 for key_type, key_filename in {"test": "test", "vaccination": "vaccinations", "recovery": "recovery"}.items():
@@ -128,10 +143,14 @@ for key_type, key_filename in {"test": "test", "vaccination": "vaccinations", "r
     }
 
 # Construct and process test cases
+print("Generating testcases. This can take a while (especially generating the QRs)", end='')
+
 testcases = []
 for type_id, type in enumerate(TEST_TYPES):
     for n in TEST_DATA_SETS["names"]:
         for d in TEST_DATA_SETS["birthdates"]:
+            print(".", end="", flush=True)
+
             is_ok = n['result'] == 'T' and d['result'] == 'T'
 
             # Don't include too many invalid cases
@@ -239,7 +258,7 @@ for type_id, type in enumerate(TEST_TYPES):
                 "COMPRESSED": compressed_message.hex(),
                 "BASE45": base45_message,
                 "PREFIX": prefixed_message,
-                "2DCODE": "",
+                "2DCODE": qr_png_base64(prefixed_message),
                 "TESTCTX": {
                     "VERSION": 1,
                     "SCHEMA": "1.0.0",
